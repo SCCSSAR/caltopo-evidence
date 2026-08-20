@@ -187,11 +187,11 @@ signing scheme, and the behaviors that cost time to discover are written up in
 python3 -m unittest discover -s tests
 ```
 
-79 tests, no network and no credentials required. The suite has been mutation-tested:
-36 deliberate defects have been introduced into the production modules: wrong `parentId`
+82 tests, no network and no credentials required. The suite has been mutation-tested:
+39 deliberate defects have been introduced into the production modules: wrong `parentId`
 parsing, swapped lat/lng, milliseconds read as seconds, the extension fallback regressed,
 marker coordinates promoted into the photo's column, each integrity check disabled in
-turn, coordinate provenance over-claimed. All 36 were caught.
+turn, coordinate provenance over-claimed. All 39 were caught.
 
 Mutation testing is the standard here because a passing test proves nothing on its own;
 what matters is that the test **fails when the code breaks**. One check did leak on the

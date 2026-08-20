@@ -75,6 +75,39 @@ class TestBaseUrlIsNotCommandLineSettable(unittest.TestCase):
         self.assertEqual(c.base_url, "https://example.test")
 
 
+class TestRedirectsAreRefused(unittest.TestCase):
+    """
+    Following a redirect lets the SERVER choose the next URL.
+
+    Nothing external picks the origin any more, but a 302 toward a link-local
+    metadata address is the classic SSRF pivot, and the request signature rides
+    in the query string, so a followed redirect hands a signed URL to whatever
+    host answered next.
+    """
+
+    def test_redirect_request_raises(self):
+        import urllib.request
+        h = client._NoRedirects()
+        req = urllib.request.Request("https://caltopo.com/api/v1/map/x/since/-1")
+        with self.assertRaises(client.CalTopoError):
+            h.redirect_request(req, None, 302, "Found", {},
+                               "http://169.254.169.254/latest/meta-data/")
+
+    def test_client_opener_installs_the_no_redirect_handler(self):
+        c = client.CalTopoReadOnlyClient(CREDS)
+        self.assertTrue(
+            any(isinstance(h, client._NoRedirects) for h in c._opener.handlers),
+            "the client must open through an opener carrying _NoRedirects")
+
+    def test_open_does_not_call_module_level_urlopen(self):
+        """urlopen follows redirects; the opener is what makes the guard real."""
+        import inspect
+        src = inspect.getsource(client.CalTopoReadOnlyClient._open)
+        stripped = "\n".join(l.split("#")[0] for l in src.splitlines())
+        self.assertNotIn("urlopen", stripped)
+        self.assertIn("self._opener.open(", stripped)
+
+
 class TestReadOnlyByConstruction(unittest.TestCase):
     def test_no_write_verbs_anywhere_in_the_module(self):
         """

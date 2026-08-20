@@ -106,6 +106,29 @@ def _validated_base_url(base_url: str) -> str:
     return cleaned
 
 
+class _NoRedirects(urllib.request.HTTPRedirectHandler):
+    """
+    Refuse to follow redirects.
+
+    This is the actual SSRF vector for a client like this one. The origin is a
+    module constant and the paths are fixed templates, so nothing external
+    chooses the URL -- but a redirect lets the SERVER choose the next one, and
+    a 302 toward a link-local metadata address is the classic pivot. A
+    read-only client that talks to exactly one known host gains nothing by
+    following one.
+
+    It also protects the credential: the signature is carried in the query
+    string, so a followed redirect would hand a signed URL to whatever host
+    answered next.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise CalTopoError(
+            f"Refusing to follow an HTTP {code} redirect from {_redact(req.selector)}. "
+            "This client talks only to the configured CalTopo origin."
+        )
+
+
 class CalTopoReadOnlyClient:
     """Signed, read-only access to the CalTopo Team API."""
 
@@ -116,6 +139,9 @@ class CalTopoReadOnlyClient:
         self.base_url = _validated_base_url(base_url)
         self.timeout = timeout
         self._ssl = ssl.create_default_context()
+        self._opener = urllib.request.build_opener(
+            urllib.request.HTTPSHandler(context=self._ssl), _NoRedirects,
+        )
 
     # -- signing ---------------------------------------------------------
 
@@ -148,7 +174,9 @@ class CalTopoReadOnlyClient:
             self._signed_url(path), method="GET",
             headers={"User-Agent": f"caltopo-evidence/{__import__('caltopo_evidence').__version__}"},
         )
-        return urllib.request.urlopen(req, timeout=self.timeout, context=self._ssl)
+        # Deliberately an opener rather than urlopen(): urlopen follows
+        # redirects, and this one must not. See _NoRedirects.
+        return self._opener.open(req, timeout=self.timeout)
 
     def _request_with_retry(self, path: str, handler: Callable):
         """
