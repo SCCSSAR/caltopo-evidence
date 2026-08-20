@@ -24,4 +24,6 @@ There is no POST, PUT, or DELETE code path anywhere in it. The maps it reads are
 
 **EXIF parsing is the untrusted-input surface.** Downloaded images are attacker-influenced in principle: anyone who can upload to a map controls those bytes. `exif.py` is deliberately about a hundred lines of JPEG marker walking that answers one yes/no question, bounds its own loops, reads a capped header, and returns `False` on any parse failure. It must not grow into a general EXIF library. If you need full EXIF extraction, run a maintained parser over the bundle after the fact rather than widening this one.
 
+**Redirects are refused.** The client opens through an opener that raises on any 3xx rather than following it. Nothing external chooses the origin, but a redirect lets the server choose the next URL, and the request signature travels in the query string, so a followed redirect would hand a signed URL to whatever host answered next.
+
 **No network input is trusted for path construction.** Filenames from CalTopo are sanitized before they reach the filesystem, including case-insensitive collision handling, because two photos whose titles differ only by case will silently overwrite each other on macOS and Windows.

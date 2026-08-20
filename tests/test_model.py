@@ -344,7 +344,7 @@ class TestCoordinateSourceLabelsAreDistinct(unittest.TestCase):
     The four provenance labels must never collapse into one another.
 
     Mutation testing caught this: changing SOURCE_INHERITED to equal
-    SOURCE_CAMERA passed every behavioural test, because each test asserted
+    SOURCE_CAMERA passed every behavioral test, because each test asserted
     against the constant rather than against the DISTINCTION between constants.
     A label that silently equals another is worse than a missing label -- it
     reports a marker's position as a camera fix.
@@ -397,3 +397,84 @@ class TestMarkerCoordinateColumns(unittest.TestCase):
     def test_attached_but_uncoordinated_container_is_NA(self):
         r = model.PhotoRecord(container_type="Marker", marker_latitude=None)
         self.assertEqual(r.as_csv_row()["marker_latitude"], model.NOT_APPLICABLE)
+
+
+class TestValidateMapId(unittest.TestCase):
+    """
+    The map id becomes a directory name as well as an API path segment, and
+    `Path("bundles") / "/tmp/x"` is `/tmp/x`. An absolute or dotted id would
+    silently escape --out.
+    """
+
+    def test_bare_handles_pass(self):
+        for good in ("ABC123", "a1b2c3d", "a", "A1b2C3", "with-dash", "with_underscore"):
+            with self.subTest(map_id=good):
+                self.assertEqual(model.validate_map_id(good), good)
+
+    def test_surrounding_whitespace_is_stripped(self):
+        self.assertEqual(model.validate_map_id("  ABC123\n"), "ABC123")
+
+    def test_absolute_path_is_refused(self):
+        """This is the pathlib trap: joining an absolute path discards the base."""
+        with self.assertRaises(model.InvalidMapId):
+            model.validate_map_id("/tmp/absolute")
+
+    def test_dot_segments_are_refused(self):
+        for bad in ("../../escape", "a/../../b", "..", "."):
+            with self.subTest(map_id=bad):
+                with self.assertRaises(model.InvalidMapId):
+                    model.validate_map_id(bad)
+
+    def test_separators_are_refused(self):
+        for bad in ("a/b", "a\\b", "a b", "a;b", "a\x00b"):
+            with self.subTest(map_id=bad):
+                with self.assertRaises(model.InvalidMapId):
+                    model.validate_map_id(bad)
+
+    def test_empty_is_refused(self):
+        for bad in ("", "   ", None):
+            with self.subTest(map_id=bad):
+                with self.assertRaises(model.InvalidMapId):
+                    model.validate_map_id(bad)
+
+    def test_pasted_url_is_named_in_the_error(self):
+        """The realistic input is a paste, not an attack. Say so."""
+        with self.assertRaises(model.InvalidMapId) as ctx:
+            model.validate_map_id("https://caltopo.com/m/ABC123")
+        self.assertIn("ABC123", str(ctx.exception))
+        self.assertIn("Did you mean", str(ctx.exception))
+
+    def test_deprecated_sartopo_host_is_named(self):
+        """sartopo.com still resolves but is deprecated. Remind, do not support."""
+        with self.assertRaises(model.InvalidMapId) as ctx:
+            model.validate_map_id("https://sartopo.com/m/ABC123")
+        msg = str(ctx.exception)
+        self.assertIn("ABC123", msg)
+        self.assertIn("sartopo.com is deprecated", msg)
+        self.assertIn("caltopo.com", msg)
+
+    def test_canonical_host_paste_gets_no_deprecation_noise(self):
+        with self.assertRaises(model.InvalidMapId) as ctx:
+            model.validate_map_id("https://caltopo.com/m/ABC123")
+        self.assertNotIn("deprecated", str(ctx.exception))
+
+    def test_unrecoverable_input_gets_no_misleading_hint(self):
+        with self.assertRaises(model.InvalidMapId) as ctx:
+            model.validate_map_id("/tmp/../etc/")
+        self.assertNotIn("Did you mean", str(ctx.exception))
+
+
+class TestValidateMapIdIsWiredIntoExtract(unittest.TestCase):
+    def test_extract_validates_before_touching_the_filesystem(self):
+        """
+        Order is the whole point. Validating after prepare_output_dir would
+        create the escaped directory and then complain about it.
+        """
+        import inspect
+        from caltopo_evidence import extract as extract_mod
+        src = inspect.getsource(extract_mod.extract)
+        stripped = "\n".join(l.split("#")[0] for l in src.splitlines())
+        self.assertIn("model.validate_map_id(map_id)", stripped)
+        self.assertLess(stripped.index("model.validate_map_id(map_id)"),
+                        stripped.index("prepare_output_dir("),
+                        "validation must run before the output directory is created")

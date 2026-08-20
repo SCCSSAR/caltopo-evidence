@@ -9,6 +9,8 @@ than merely asserted.
 
 from __future__ import annotations
 
+import re
+
 import datetime as _dt
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -125,7 +127,7 @@ def resolve_container(parent_id: Optional[str], by_id: dict) -> tuple[str, str]:
 
     2. No parentId means Unattached. That is CalTopo's default and it is where a
        photo lands even when a folder is selected in the UI; a folder is not a
-       photo destination there. Verified behaviourally 2026-08-19.
+       photo destination there. Verified behaviorally 2026-08-19.
 
     When the prefix names a class whose target is missing from the map, the
     declared class is still reported -- "a Marker we cannot find" is more useful
@@ -282,3 +284,56 @@ def index_features(map_state: dict) -> dict:
 def map_title(map_info: dict) -> str:
     """Human-readable map name from the account-scoped CollaborativeMap object."""
     return (((map_info or {}).get("result") or {}).get("properties") or {}).get("title") or ""
+
+
+# A CalTopo map id is a short alphanumeric handle. The character class is
+# deliberately narrow: what matters is that it can contain no path separator
+# and no dot segment.
+_MAP_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+_CANONICAL_HOST = "caltopo.com"
+# sartopo.com still resolves, but it is publicly deprecated. This tool talks to
+# one host and does not follow redirects, so a sartopo URL is a mistake worth
+# naming rather than a second origin worth supporting.
+_DEPRECATED_HOST = "sartopo.com"
+
+
+class InvalidMapId(ValueError):
+    """The map id is not a bare CalTopo handle."""
+
+
+def validate_map_id(map_id: str) -> str:
+    """
+    Reject anything that is not a bare map handle.
+
+    The map id names the output directory as well as the API path, and
+    `Path("bundles") / "/tmp/x"` is `/tmp/x` -- an absolute or dotted id
+    silently escapes --out entirely. For an evidence tool, writing outside the
+    directory it reported writing to is a provenance problem, not a cosmetic
+    one.
+
+    The realistic input here is not an attack, it is a paste: someone copies
+    `caltopo.com/m/ABC123` out of the browser instead of the id. Failing loudly
+    and naming that mistake beats creating `bundles/caltopo.com/m/ABC123/` and
+    looking like it worked.
+    """
+    candidate = (map_id or "").strip()
+    if _MAP_ID_RE.match(candidate):
+        return candidate
+
+    # Only offer a correction for mistakes we can actually recognise: a pasted
+    # map URL. Deriving a suggestion from any path produces confident nonsense,
+    # since "/tmp/../etc/" would otherwise yield "Did you mean etc?".
+    hint = ""
+    low = candidate.lower()
+    if _CANONICAL_HOST in low or _DEPRECATED_HOST in low:
+        tail = candidate.rstrip("/").rsplit("/", 1)[-1]
+        if _MAP_ID_RE.match(tail):
+            hint = f" Did you mean {tail}?"
+        if _DEPRECATED_HOST in low:
+            hint += (f" Note that {_DEPRECATED_HOST} is deprecated. This tool reads "
+                     f"{_CANONICAL_HOST} and does not follow redirects.")
+    raise InvalidMapId(
+        f"{map_id!r} is not a CalTopo map id. Expected a short alphanumeric "
+        f"handle, for example ABC123, not a URL or a path.{hint}"
+    )

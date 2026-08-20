@@ -23,8 +23,9 @@ import sys
 from pathlib import Path
 
 from . import TOOL_NAME, __version__
-from .client import CalTopoError, CalTopoReadOnlyClient, Credentials, DEFAULT_BASE_URL
+from .client import CalTopoError, CalTopoReadOnlyClient, Credentials
 from .extract import BundleExists, extract
+from .model import InvalidMapId
 from .manifest import verify_bundle
 
 GCLOUD_SECRETS = {
@@ -79,7 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
     ex.add_argument("--metadata-only", action="store_true",
                     help="read the map and write the CSV, but download no image bytes")
     ex.add_argument("--limit", type=int, default=None,
-                    help="download only the first N photos — produces a PARTIAL bundle")
+                    help="download only the first N photos; produces a PARTIAL bundle")
     ex.add_argument("--all", action="store_true",
                     help="download every photo (this is the default; kept for clarity)")
     ex.add_argument("--resume", action="store_true",
@@ -88,7 +89,6 @@ def build_parser() -> argparse.ArgumentParser:
                     help="replace an existing bundle")
     ex.add_argument("--operator", default=None,
                     help="operator identity recorded in the manifest (default: user@host)")
-    ex.add_argument("--base-url", default=DEFAULT_BASE_URL)
     ex.add_argument("--quiet", action="store_true")
     _add_cred_args(ex)
 
@@ -106,7 +106,11 @@ def _add_cred_args(sp) -> None:
 
 def cmd_extract(args) -> int:
     creds = load_credentials(args)
-    client = CalTopoReadOnlyClient(creds, base_url=args.base_url)
+    # The base URL is deliberately NOT settable from the command line. It was a
+    # `--base-url` flag, undocumented and unused, and it was the only path by
+    # which anything outside this code reached urllib. Tests that need a
+    # different origin pass `base_url=` to the constructor directly.
+    client = CalTopoReadOnlyClient(creds)
 
     # DOWNLOADING IS THE DEFAULT.
     #
@@ -144,10 +148,10 @@ def cmd_extract(args) -> int:
 def cmd_verify(args) -> int:
     res = verify_bundle(args.bundle_dir)
     if res["ok"]:
-        print(f"VERIFIED — {res['checked']} artifact(s) match the manifest.")
+        print(f"VERIFIED: {res['checked']} artifact(s) match the manifest.")
         print("Note: SHA-256 digests are tamper-evidence, not a signature.")
         return 0
-    print(f"FAILED — {len(res['problems'])} problem(s):")
+    print(f"FAILED: {len(res['problems'])} problem(s):")
     for p in res["problems"]:
         print(f"  - {p}")
     return 1
@@ -160,13 +164,15 @@ def main(argv=None) -> int:
             return cmd_extract(args)
         if args.command == "verify":
             return cmd_verify(args)
-    except BundleExists as e:
+    except (BundleExists, InvalidMapId) as e:
+        # InvalidMapId is a ValueError, so without this it reaches the user as
+        # a traceback instead of the message it was written to give them.
         print(f"error: {e}", file=sys.stderr)
         return 2
     except CalTopoError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
     except KeyboardInterrupt:
-        print("\ninterrupted — re-run with --resume to continue", file=sys.stderr)
+        print("\ninterrupted; re-run with --resume to continue", file=sys.stderr)
         return 130
     return 2

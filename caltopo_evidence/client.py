@@ -73,7 +73,7 @@ class Credentials:
                 "    export CALTOPO_CREDENTIAL_ID=...\n"
                 "    export CALTOPO_CREDENTIAL_SECRET=...\n"
                 "    export CALTOPO_TEAM_ID=...            # optional, for the map title\n"
-                "  Or read them from Google Secret Manager — note the flag goes AFTER\n"
+                "  Or read them from Google Secret Manager. Note the flag goes AFTER\n"
                 "  the subcommand:\n"
                 "    python3 -m caltopo_evidence extract <MAP_ID> --from-gcloud <PROJECT>"
             )
@@ -85,6 +85,50 @@ class Credentials:
             ) from exc
 
 
+def _validated_base_url(base_url: str) -> str:
+    """
+    Accept only an https:// origin.
+
+    `--base-url` is an operator-supplied string that reaches urllib. Without a
+    scheme check, `file:///etc/passwd` makes urlopen read a local path while the
+    tool still believes it is talking to CalTopo, and a plain http:// origin
+    would put a signed credential on the wire in cleartext. Neither is a remote
+    attack -- the operator types this -- but an evidence tool should not be
+    talkable into either by a typo or a copied command line.
+    """
+    cleaned = base_url.rstrip("/")
+    if not cleaned.lower().startswith("https://"):
+        raise CalTopoError(
+            f"--base-url must be an https:// origin, got {base_url!r}. "
+            "Requests carry a signed credential, so http:// and non-network "
+            "schemes such as file:// are refused."
+        )
+    return cleaned
+
+
+class _NoRedirects(urllib.request.HTTPRedirectHandler):
+    """
+    Refuse to follow redirects.
+
+    This is the actual SSRF vector for a client like this one. The origin is a
+    module constant and the paths are fixed templates, so nothing external
+    chooses the URL -- but a redirect lets the SERVER choose the next one, and
+    a 302 toward a link-local metadata address is the classic pivot. A
+    read-only client that talks to exactly one known host gains nothing by
+    following one.
+
+    It also protects the credential: the signature is carried in the query
+    string, so a followed redirect would hand a signed URL to whatever host
+    answered next.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise CalTopoError(
+            f"Refusing to follow an HTTP {code} redirect from {_redact(req.selector)}. "
+            "This client talks only to the configured CalTopo origin."
+        )
+
+
 class CalTopoReadOnlyClient:
     """Signed, read-only access to the CalTopo Team API."""
 
@@ -92,9 +136,12 @@ class CalTopoReadOnlyClient:
                  timeout: float = 120.0):
         creds.validate()
         self._creds = creds
-        self.base_url = base_url.rstrip("/")
+        self.base_url = _validated_base_url(base_url)
         self.timeout = timeout
         self._ssl = ssl.create_default_context()
+        self._opener = urllib.request.build_opener(
+            urllib.request.HTTPSHandler(context=self._ssl), _NoRedirects,
+        )
 
     # -- signing ---------------------------------------------------------
 
@@ -127,7 +174,9 @@ class CalTopoReadOnlyClient:
             self._signed_url(path), method="GET",
             headers={"User-Agent": f"caltopo-evidence/{__import__('caltopo_evidence').__version__}"},
         )
-        return urllib.request.urlopen(req, timeout=self.timeout, context=self._ssl)
+        # Deliberately an opener rather than urlopen(): urlopen follows
+        # redirects, and this one must not. See _NoRedirects.
+        return self._opener.open(req, timeout=self.timeout)
 
     def _request_with_retry(self, path: str, handler: Callable):
         """

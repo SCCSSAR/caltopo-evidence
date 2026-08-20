@@ -1,4 +1,4 @@
-# CalTopo read API — measured notes
+# CalTopo read API: measured notes
 
 CalTopo's read API is thinly documented. Everything here was established empirically
 against live maps in August 2026, while building this tool. It is recorded so nobody has
@@ -17,7 +17,7 @@ Learned empirically against a live map; CalTopo's read API is thinly documented.
 | Photo metadata | `GET /api/v1/media/{backendMediaId}` |
 | Photo bytes | `GET /api/v1/media/{backendMediaId}/original` |
 
-Requests are signed HMAC-SHA256 over `"GET {path}\n{expires}\n"` — path only, not the
+Requests are signed HMAC-SHA256 over `"GET {path}\n{expires}\n"`, path only, not the
 query string that carries the auth parameters.
 
 Things that cost time to discover, recorded so nobody re-walks them for future development purposes:
@@ -26,7 +26,7 @@ Things that cost time to discover, recorded so nobody re-walks them for future d
   colon. `Marker` and `Folder` are both exactly six characters, so a fixed-width prefix
   strip conflates them silently.
 - **A photo with no `parentId` is unattached**, which is CalTopo's default. Uploading
-  into a selected folder in the web UI still files the photo under *Unattached Photos* —
+  into a selected folder in the web UI still files the photo under *Unattached Photos*:
   a folder is not a photo destination there.
 - **`GET /api/v1/map/{mapId}/media/{backendMediaId}` returns HTTP 200 with a zero-byte
   body.** It looks like success. Treat an empty body as failure.
@@ -37,7 +37,8 @@ Things that cost time to discover, recorded so nobody re-walks them for future d
   across an entire map and are not elevation data.
 - **CalTopo filenames do not always carry an extension.** Fall back to the metadata
   `format` field.
-- **CalTopo re-encodes uploaded photos** — see *What CalTopo actually stores*, above.
+- **CalTopo re-encodes uploaded photos.** See *What CalTopo actually stores* in the
+  [README](../README.md).
   Surface inspection suggests otherwise and is misleading: across a 48-photo map every
   file retained an EXIF APP1 block with intact camera make and model (nine distinct
   devices), 42 retained a GPS IFD, 35 retained an ICC profile, and **none** carried an
@@ -49,7 +50,7 @@ Things that cost time to discover, recorded so nobody re-walks them for future d
   means a human placed it.
 - **In a HEIC, searching for `Exif\x00\x00` finds the item *declaration*, not the
   payload.** Seek the TIFF magic instead. The naive search returns zero tags, which reads
-  identically to "this file has no EXIF" — a parser failure wearing the costume of a
+  identically to "this file has no EXIF", a parser failure wearing the costume of a
   finding. (This tool only reads JPEG, but the trap bit during the capture-file
   comparison and is worth recording.)
 
@@ -59,7 +60,7 @@ Ten plausible ways to fetch photo bytes were probed. The ones worth naming:
 
 | Attempt | Result |
 |---|---|
-| `GET /api/v1/map/{mapId}/media/{mediaId}` | **HTTP 200 with a zero-byte body** — looks like success |
+| `GET /api/v1/map/{mapId}/media/{mediaId}` | **HTTP 200 with a zero-byte body**, which looks like success |
 | `GET /api/v1/media/{mediaId}.jpg` | HTTP 400; the extension goes nowhere |
 | `GET /api/v1/media/{mediaId}/original` | ✅ the working path |
 
@@ -75,7 +76,7 @@ signature:       base64( HMAC-SHA256( base64_decode(secret), signing_string ) )
 transport:       id / expires / signature as QUERY PARAMETERS on GET
 ```
 
-The signature covers the **path only** — not the query string that carries the auth
+The signature covers the **path only**, not the query string that carries the auth
 parameters. The trailing newline and the empty payload segment are both load-bearing.
 POST requests pass the same three values as form fields instead, which is why a client
 that only ever GETs can keep the signing code this small.

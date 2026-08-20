@@ -27,6 +27,12 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Do not leave the job's GITHUB_TOKEN in .git/config, where every
+          # later step in the job can read it. Nothing here pushes, so the
+          # credential buys nothing and only widens what a future step (or a
+          # compromised action) could reach.
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -42,6 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Do not leave the job's GITHUB_TOKEN in .git/config, where every
+          # later step in the job can read it. Nothing here pushes, so the
+          # credential buys nothing and only widens what a future step (or a
+          # compromised action) could reach.
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:

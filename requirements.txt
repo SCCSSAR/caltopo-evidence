@@ -1,0 +1,15 @@
+# Runtime dependencies: none, deliberately.
+#
+# This file is intentionally empty of packages. It exists so that a dependency
+# scanner can tell "this project declares zero third-party packages" apart from
+# "I could not find a manifest here" -- an absent signal otherwise reads as a
+# clean one.
+#
+# The zero-dependency rule is a property of the tool, not a stage it is passing
+# through. An evidence tool's dependency tree is part of its audit surface:
+# every package added is code someone has to account for when asked how a
+# bundle was produced, and it narrows the Python versions the tool supports.
+#
+# Adding one needs a case made in an issue first. See CONTRIBUTING.md.
+# The canonical declaration is `dependencies = []` in pyproject.toml; this file
+# mirrors it and is pinned against it by tests/test_no_dependencies.py.
