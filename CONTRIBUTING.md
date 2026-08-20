@@ -8,7 +8,7 @@ Bug reports and fixes are welcome, particularly from other SAR teams running thi
 python3 -m unittest discover -s tests
 ```
 
-No network, no credentials, no third-party packages. 97 tests, and they run in well under a second. CI runs the same command on Python 3.9 through 3.13.
+No network, no credentials, no third-party packages. 102 tests, and they run in well under a second. CI runs the same command on Python 3.9 through 3.13.
 
 ## A passing test proves nothing
 

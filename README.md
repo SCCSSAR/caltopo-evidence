@@ -98,8 +98,10 @@ missing coordinate is never inferred.
 ### Two positions per row, never merged
 
 `latitude` / `longitude` are the **photo's own** position. `marker_latitude` /
-`marker_longitude` are the position of the **marker it is attached to**, or `N/A` when it
-is attached to nothing.
+`marker_longitude` are the position of the **container it is attached to**, or `N/A` when
+it is attached to nothing, or when the container carries no single point. An Assignment
+or a Line & Polygon has a real geometry, but a polygon has no one position, so those
+cells read `N/A` rather than reporting a vertex as though it were the location.
 
 They are reported separately because they are different facts. A responder can drop a
 marker and then walk before taking the photo. On the map used for validation, a photo
@@ -193,11 +195,11 @@ signing scheme, and the behaviors that cost time to discover are written up in
 python3 -m unittest discover -s tests
 ```
 
-97 tests, no network and no credentials required. The suite has been mutation-tested:
-45 deliberate defects have been introduced into the production modules: wrong `parentId`
+102 tests, no network and no credentials required. The suite has been mutation-tested:
+49 deliberate defects have been introduced into the production modules: wrong `parentId`
 parsing, swapped lat/lng, milliseconds read as seconds, the extension fallback regressed,
 marker coordinates promoted into the photo's column, each integrity check disabled in
-turn, coordinate provenance over-claimed. All 45 were caught.
+turn, coordinate provenance over-claimed. All 49 were caught.
 
 Mutation testing is the standard here because a passing test proves nothing on its own;
 what matters is that the test **fails when the code breaks**. One check did leak on the
@@ -211,8 +213,14 @@ Pre-release. Validated end to end against two real incident maps. The larger run
 48 photos and 350 MB in ~44 seconds, with the write-once guard, resume, tamper detection
 and verification all exercised against live data.
 
-Not yet exercised against `Folder` or `Assignment` containers with real data. The code
-path is class-agnostic and unit tested, but it has not met the real thing.
+Container handling has now met real data for `Marker`, `Assignment` and `Shape`, which
+is what CalTopo's API calls a Line & Polygon. Each resolves its container by name, and a
+photo attached to an Assignment or a Shape reports `N/A` in the marker coordinate columns
+rather than inferring a position from the shape.
+
+`Folder` remains unexercised and may not be reachable at all: uploading with a folder
+selected in the CalTopo web UI still files the photo under Unattached Photos, so a folder
+does not appear to be a photo destination.
 
 ---
 
