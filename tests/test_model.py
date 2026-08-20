@@ -478,3 +478,56 @@ class TestValidateMapIdIsWiredIntoExtract(unittest.TestCase):
         self.assertLess(stripped.index("model.validate_map_id(map_id)"),
                         stripped.index("prepare_output_dir("),
                         "validation must run before the output directory is created")
+
+
+class TestNonPointContainerGeometries(unittest.TestCase):
+    """
+    A photo can be attached to a Line & Polygon (API class `Shape`) or to an
+    Assignment. Both were exercised against a real map: the container resolves
+    by name, and the marker coordinate columns correctly read N/A.
+
+    Those containers carry a real geometry, just not a Point. Declining is the
+    right answer, but today it happens because a LineString's first element is
+    a list and fails the numeric type guard, not because anything checks the
+    geometry type. That is correct and worth pinning: a later "be lenient about
+    numeric input" change could start reporting a polygon's FIRST VERTEX as the
+    container position, which would look entirely plausible while pointing at
+    one corner of a search area.
+    """
+
+    def test_linestring_yields_no_coordinate(self):
+        self.assertEqual(
+            model.extract_coordinates(
+                {"type": "LineString",
+                 "coordinates": [[-121.9, 37.4], [-121.91, 37.41]]}),
+            (None, None))
+
+    def test_polygon_yields_no_coordinate(self):
+        self.assertEqual(
+            model.extract_coordinates(
+                {"type": "Polygon",
+                 "coordinates": [[[-121.9, 37.4], [-121.91, 37.41], [-121.9, 37.4]]]}),
+            (None, None))
+
+    def test_container_coordinates_are_NA_for_a_shape(self):
+        by_id = {"s1": {"id": "s1", "properties": {"class": "Shape", "title": "Segment A"},
+                        "geometry": {"type": "LineString",
+                                     "coordinates": [[-121.9, 37.4], [-121.91, 37.41]]}}}
+        self.assertEqual(model.container_coordinates("Shape:s1", by_id), (None, None))
+
+    def test_container_coordinates_are_NA_for_an_assignment(self):
+        by_id = {"a1": {"id": "a1", "properties": {"class": "Assignment", "title": "Team 1"},
+                        "geometry": {"type": "Polygon",
+                                     "coordinates": [[[-121.9, 37.4], [-121.91, 37.41],
+                                                      [-121.9, 37.4]]]}}}
+        self.assertEqual(model.container_coordinates("Assignment:a1", by_id), (None, None))
+
+    def test_shape_and_assignment_containers_resolve_by_name(self):
+        """Container resolution is class-agnostic; these two are now proven so."""
+        by_id = {
+            "s1": {"id": "s1", "properties": {"class": "Shape", "title": "Segment A"}},
+            "a1": {"id": "a1", "properties": {"class": "Assignment", "title": "Team 1"}},
+        }
+        self.assertEqual(model.resolve_container("Shape:s1", by_id), ("Shape", "Segment A"))
+        self.assertEqual(model.resolve_container("Assignment:a1", by_id),
+                         ("Assignment", "Team 1"))
