@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from . import TOOL_NAME, __version__
-from .client import CalTopoError, CalTopoReadOnlyClient, Credentials, DEFAULT_BASE_URL
+from .client import CalTopoError, CalTopoReadOnlyClient, Credentials
 from .extract import BundleExists, extract
 from .manifest import verify_bundle
 
@@ -88,7 +88,6 @@ def build_parser() -> argparse.ArgumentParser:
                     help="replace an existing bundle")
     ex.add_argument("--operator", default=None,
                     help="operator identity recorded in the manifest (default: user@host)")
-    ex.add_argument("--base-url", default=DEFAULT_BASE_URL)
     ex.add_argument("--quiet", action="store_true")
     _add_cred_args(ex)
 
@@ -106,7 +105,11 @@ def _add_cred_args(sp) -> None:
 
 def cmd_extract(args) -> int:
     creds = load_credentials(args)
-    client = CalTopoReadOnlyClient(creds, base_url=args.base_url)
+    # The base URL is deliberately NOT settable from the command line. It was a
+    # `--base-url` flag, undocumented and unused, and it was the only path by
+    # which anything outside this code reached urllib. Tests that need a
+    # different origin pass `base_url=` to the constructor directly.
+    client = CalTopoReadOnlyClient(creds)
 
     # DOWNLOADING IS THE DEFAULT.
     #

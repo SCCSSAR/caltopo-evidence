@@ -49,6 +49,32 @@ class TestBaseUrlValidation(unittest.TestCase):
             client.CalTopoReadOnlyClient(CREDS, base_url="file:///tmp/https://x")
 
 
+class TestBaseUrlIsNotCommandLineSettable(unittest.TestCase):
+    """
+    The CLI must expose no way to set the request origin.
+
+    `--base-url` was undocumented and unused, and it was the only path by which
+    anything outside this code reached urllib. Removing it closes the SSRF
+    finding on fact rather than on argument, so the removal is pinned: a flag
+    is a one-line addition and would silently reopen it.
+    """
+
+    def test_cli_declares_no_base_url_flag(self):
+        from caltopo_evidence import cli
+        parser = cli.build_parser()
+        rendered = parser.format_help()
+        for sub in ("extract", "verify"):
+            action = [a for a in parser._subparsers._group_actions[0].choices.items()
+                      if a[0] == sub][0][1]
+            rendered += action.format_help()
+        self.assertNotIn("--base-url", rendered)
+        self.assertNotIn("--base_url", rendered)
+
+    def test_constructor_still_accepts_base_url_for_tests(self):
+        c = client.CalTopoReadOnlyClient(CREDS, base_url="https://example.test")
+        self.assertEqual(c.base_url, "https://example.test")
+
+
 class TestReadOnlyByConstruction(unittest.TestCase):
     def test_no_write_verbs_anywhere_in_the_module(self):
         """
