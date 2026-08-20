@@ -1,0 +1,55 @@
+name: Bug report
+description: Something the tool did wrong
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not paste real map data.** No map ids, no incident photographs, no
+        real coordinates, and no evidence item names. Redact them or describe
+        the shape instead. This repository is subject to public disclosure and
+        the maps this tool reads are case material.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead.
+      placeholder: |
+        Command: caltopo-evidence extract <redacted> --metadata-only
+        Expected: a CSV row per photo
+        Got: 3 rows for a map with 12 photos
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Console output
+      description: Redact map ids and coordinates before pasting.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `caltopo-evidence --version`.
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version and OS
+      placeholder: "3.11.6, macOS 14.5"
+    validations:
+      required: true
+
+  - type: textarea
+    id: map-shape
+    attributes:
+      label: What the map looked like
+      description: >
+        Roughly how many photos, and what they were attached to: markers,
+        folders, assignments, or nothing. Folder and Assignment containers have
+        had the least real-world exposure, so this matters more than it sounds.

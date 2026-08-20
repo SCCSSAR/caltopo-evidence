@@ -1,0 +1,17 @@
+# Evidence bundles. These hold incident photographs, GPS coordinates and
+# timestamps. They must never be committed.
+bundles/
+output/
+*.csv
+manifest.json
+manifest.sha256
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+
+.venv/
+.DS_Store

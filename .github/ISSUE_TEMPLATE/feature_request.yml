@@ -1,0 +1,37 @@
+name: Feature request
+description: Something the tool should do and does not
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing, check the constraints in
+        [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md). Several plausible
+        requests are deliberate refusals: adding a dependency, widening the
+        EXIF parser, merging the photo and marker coordinate columns, and
+        inferring a missing coordinate. Those need a case, not a request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you were trying to do, and what got in the way.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like it to do
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence-impact
+    attributes:
+      label: Effect on the evidence record
+      description: >
+        If this changes what lands in the CSV or the manifest, say how someone
+        reading the bundle later would be affected. A field that asserts more
+        certainty than the data carries is the failure mode this tool is built
+        against.
