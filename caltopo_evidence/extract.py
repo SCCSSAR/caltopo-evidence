@@ -111,7 +111,7 @@ def extract(client: CalTopoReadOnlyClient, map_id: str, out_root: Path, *,
             "Map title unavailable: reading it requires CALTOPO_TEAM_ID and the "
             "account-scoped CollaborativeMap endpoint."
         )
-        _log("  map title    : (unavailable — no team id configured)", quiet)
+        _log("  map title    : (unavailable: no team id configured)", quiet)
     else:
         _log(f"  map title    : {title}", quiet)
 
@@ -145,7 +145,7 @@ def extract(client: CalTopoReadOnlyClient, map_id: str, out_root: Path, *,
     _log(f"  containers   : {container_hist}", quiet)
     no_coords = sum(1 for r in records if not r.has_coordinates)
     if no_coords:
-        _log(f"  no coordinates on {no_coords} photo(s) — reported, not inferred", quiet)
+        _log(f"  no coordinates on {no_coords} photo(s); reported, not inferred", quiet)
 
     # -- 4. per-photo metadata ---------------------------------------------
     _log(f"Fetching metadata for {len(records)} photo(s) ...", quiet)
@@ -189,7 +189,7 @@ def extract(client: CalTopoReadOnlyClient, map_id: str, out_root: Path, *,
             )
     est = sum(r.filesize_bytes or 0 for r in targets)
     _log(f"Downloading {len(targets)} of {len(records)} original(s)"
-         + (f" — about {est / (1024*1024):.0f} MB ..." if est else " ..."), quiet)
+         + (f", about {est / (1024*1024):.0f} MB ..." if est else " ..."), quiet)
 
     used_names: set = set()
     # Seed collision state from disk so a resumed run cannot re-issue a name.
@@ -277,7 +277,7 @@ def extract(client: CalTopoReadOnlyClient, map_id: str, out_root: Path, *,
          + (f"  (resumed {resumed})" if resumed else ""), quiet)
     if failed:
         notes.append(f"{len(failed)} download(s) failed.")
-        _log(f"  FAILURES     : {len(failed)} — see download_status in the CSV", quiet)
+        _log(f"  FAILURES     : {len(failed)}; see download_status in the CSV", quiet)
 
     # -- 6. CSV --------------------------------------------------------------
     csv_name = f"{map_id}_photos.csv"
@@ -314,7 +314,7 @@ def extract(client: CalTopoReadOnlyClient, map_id: str, out_root: Path, *,
     _log(f"  CSV          : {csv_path.name}  ({len(records)} rows)", quiet)
     _log(f"  manifest     : {manifest_path.name} + {digest_path.name}", quiet)
     _log(f"  bundle       : {out_dir}", quiet)
-    _log("  Bundle contents are not printed — they may be incident evidence.", quiet)
+    _log("  Bundle contents are not printed; they may be incident evidence.", quiet)
 
     return ExtractionResult(out_dir=out_dir, photo_dir=photo_dir, csv_path=csv_path,
                             manifest_path=manifest_path, records=records, notes=notes)

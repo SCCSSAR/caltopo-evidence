@@ -73,7 +73,7 @@ class Credentials:
                 "    export CALTOPO_CREDENTIAL_ID=...\n"
                 "    export CALTOPO_CREDENTIAL_SECRET=...\n"
                 "    export CALTOPO_TEAM_ID=...            # optional, for the map title\n"
-                "  Or read them from Google Secret Manager — note the flag goes AFTER\n"
+                "  Or read them from Google Secret Manager. Note the flag goes AFTER\n"
                 "  the subcommand:\n"
                 "    python3 -m caltopo_evidence extract <MAP_ID> --from-gcloud <PROJECT>"
             )

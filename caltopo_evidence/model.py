@@ -125,7 +125,7 @@ def resolve_container(parent_id: Optional[str], by_id: dict) -> tuple[str, str]:
 
     2. No parentId means Unattached. That is CalTopo's default and it is where a
        photo lands even when a folder is selected in the UI; a folder is not a
-       photo destination there. Verified behaviourally 2026-08-19.
+       photo destination there. Verified behaviorally 2026-08-19.
 
     When the prefix names a class whose target is missing from the map, the
     declared class is still reported -- "a Marker we cannot find" is more useful

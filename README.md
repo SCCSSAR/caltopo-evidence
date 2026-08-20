@@ -17,7 +17,7 @@ Given a CalTopo map id, for every photo on the map:
 
 - downloads the **original-resolution** image (not a thumbnail)
 - records its **name**, **latitude/longitude**, and **compass heading**
-- resolves what it is **attached to** — a marker, a folder, an assignment, or nothing
+- resolves what it is **attached to**: a marker, a folder, an assignment, or nothing
 - computes a **SHA-256** of every file as it is written
 - writes a **CSV report** and a **manifest** you can re-verify later
 
@@ -40,7 +40,7 @@ python3 -m caltopo_evidence extract ABC123 --from-gcloud my-gcp-project
 
 It reads `caltopo-credential-id`, `caltopo-credential-secret` and `caltopo-team-id` from
 that project using whatever account `gcloud` is currently authenticated as. If the token
-has expired, `gcloud auth login <account>` first — `gcloud config set account` alone does
+has expired, `gcloud auth login <account>` first. `gcloud config set account` alone does
 not refresh it.
 
 **Extraction downloads the photos.** That is the default, because it is what the command
@@ -56,7 +56,7 @@ python3 -m caltopo_evidence extract ABC123 --limit 5          # a sample
 
 Bundles are write-once: re-running into an existing bundle needs `--force` (replace) or
 `--resume` (continue an interrupted run). Note that `--force` only governs *replacing the
-directory* — it has never had anything to do with whether photos are downloaded.
+directory*. It has never had anything to do with whether photos are downloaded.
 
 Operators keeping credentials in Google Secret Manager can use
 `--from-gcloud <project>` instead of exporting variables. That path is opt-in so the
@@ -85,7 +85,7 @@ looked like at retrieval time after the live map has moved on.
 `exif_created_utc`, `exif_created_tz`, `filesize_bytes`, `sha256`, `media_id`,
 `feature_id`, `download_status`
 
-Every photo gets a row, including photos with no location — those carry
+Every photo gets a row, including photos with no location. Those carry
 `has_coordinates=no` and empty coordinate cells. Nothing is dropped silently, and a
 missing coordinate is never inferred.
 
@@ -96,23 +96,23 @@ missing coordinate is never inferred.
 is attached to nothing.
 
 They are reported separately because they are different facts. A responder can drop a
-marker and then walk before taking the photo — on the map used for validation, a photo
+marker and then walk before taking the photo. On the map used for validation, a photo
 sat about 1.6 m from the marker it was attached to. Collapsing them into one column would
 assert a precision the data does not carry.
 
 This also means a photo with no camera fix still has a usable position: during testing,
 4 photos carried no coordinate of their own but were attached to located markers. Their
-`latitude` cells stay **empty** — the marker position is never promoted into the photo's
-column — while `marker_latitude` gives the answer a reader actually needs.
+`latitude` cells stay **empty** (the marker position is never promoted into the photo's
+column), while `marker_latitude` gives the answer a reader actually needs.
 
-### `coordinate_source` — where the photo's own position came from
+### `coordinate_source`: where the photo's own position came from
 
 A CalTopo photo can carry a map coordinate the **camera never recorded**: someone placed
 it by hand. Measured on a real map during testing, 2 of 44 located photos were positioned this way.
 
 | Value | Meaning |
 |---|---|
-| `camera (EXIF GPS)` | the image carries an EXIF GPS record — the camera fixed the position |
+| `camera (EXIF GPS)` | the image carries an EXIF GPS record, so the camera fixed the position |
 | `map only (no EXIF GPS)` | a person set this position on the map |
 | `none` | no coordinate at all |
 | `not checked (image not downloaded)` | metadata-only run; the bytes were never fetched |
@@ -121,7 +121,7 @@ Presenting both in a single `latitude` column would give a human placement the s
 apparent authority as a camera fix. "The photo was taken here" and "someone later said
 it was taken here" are different claims, and only one of them is a measurement.
 
-## Integrity — what the manifest does and does not prove
+## Integrity: what the manifest does and does not prove
 
 `manifest.json` records a SHA-256 for every artifact plus the provenance of the
 retrieval: when, from which map, via which endpoints, by which operator, and how many
@@ -131,7 +131,7 @@ the manifest itself.
 **This is tamper-evidence, not authentication.** There is no signing key. It proves a
 bundle has not changed since the manifest was written; it does not prove who wrote the
 manifest, and anyone able to rewrite the bundle can rewrite both files. Custody of the
-sidecar digest — recorded or transmitted separately — is what gives it force. Do not
+sidecar digest, recorded or transmitted separately, is what gives it force. Do not
 describe it as a signature in a declaration.
 
 `verify` checks the manifest against its sidecar, the CSV, every listed file's digest
@@ -142,7 +142,7 @@ and a per-file loop alone will never notice it.
 Bundles are **write-once**. Running `extract` into a populated directory refuses unless
 you pass `--resume` or `--force`.
 
-## What CalTopo actually stores — read this before relying on a checksum
+## What CalTopo actually stores: read this before relying on a checksum
 
 **CalTopo does not hold the capture file.** Measured 2026-08-19 against two photos whose
 originals were retained on the capturing phone:
@@ -160,7 +160,7 @@ originals were retained on the capturing phone:
 serves, every evidence-relevant EXIF tag is byte-identical: `DateTimeOriginal`,
 `SubSecTimeOriginal`, `GPSLatitude`, `GPSLongitude`, `GPSAltitude`, camera `Model`,
 `ExposureTime`, `ISO`. Only the maker note is rewritten (and `FocalLength` differed on
-one of the two — not yet explained).
+one of the two, which is not yet explained).
 
 ### What this means for evidence
 
@@ -172,13 +172,13 @@ on the capturing device.
 - **When the images themselves may be contested, the capture device is the evidence.**
   Preserve the phone or export unmodified originals from it; the CalTopo copy is a
   working reference.
-- **When location and timing are what matter, the CalTopo copy is trustworthy** — those
+- **When location and timing are what matter, the CalTopo copy is trustworthy**: those
   fields pass through the transcode unchanged.
 
 ## Notes on CalTopo's data model
 
 CalTopo's read API is thinly documented. The endpoints this tool uses, the request
-signing scheme, and the behaviours that cost time to discover are written up in
+signing scheme, and the behaviors that cost time to discover are written up in
 [docs/caltopo-api-notes.md](docs/caltopo-api-notes.md).
 
 ## Tests
@@ -188,14 +188,14 @@ python3 -m unittest discover -s tests
 ```
 
 79 tests, no network and no credentials required. The suite has been mutation-tested:
-36 deliberate defects have been introduced into the production modules — wrong `parentId`
+36 deliberate defects have been introduced into the production modules: wrong `parentId`
 parsing, swapped lat/lng, milliseconds read as seconds, the extension fallback regressed,
 marker coordinates promoted into the photo's column, each integrity check disabled in
-turn, coordinate provenance over-claimed — and all 23 were caught.
+turn, coordinate provenance over-claimed. All 36 were caught.
 
 Mutation testing is the standard here because a passing test proves nothing on its own;
 what matters is that the test **fails when the code breaks**. One check did leak on the
-first pass — the manifest's file-size comparison, which turned out to be redundant with
+first pass: the manifest's file-size comparison, which turned out to be redundant with
 the digest check for detection. Rather than inflate it, the test now pins what it
 actually delivers: a truncated file reports *truncation*, not a generic digest mismatch.
 
@@ -205,5 +205,38 @@ Pre-release. Validated end to end against two real incident maps. The larger run
 48 photos and 350 MB in ~44 seconds, with the write-once guard, resume, tamper detection
 and verification all exercised against live data.
 
-Not yet exercised against `Folder` or `Assignment` containers with real data — the code
-path is class-agnostic and unit tested, but has not met the real thing.
+Not yet exercised against `Folder` or `Assignment` containers with real data. The code
+path is class-agnostic and unit tested, but it has not met the real thing.
+
+---
+
+## AI Influence Level
+
+[![AI Influence Level 3](https://img.shields.io/badge/AI%20Influence%20Level-3-6E56CF)](https://danielmiessler.com/blog/ai-influence-level-ail)
+
+**AIL:3, AI Created, Human Full Structure.** See [the AIL framework](https://danielmiessler.com/blog/ai-influence-level-ail) for what the levels mean.
+
+The code, tests and documentation here were written by Claude (Anthropic), working in
+Claude Code. A person set the requirements and the structure, made the decisions that are
+load-bearing for evidence handling, validated the tool against two real incident maps,
+and reviews and merges every change.
+
+Decisions a person made, not the model:
+
+- Downloading the photos is the default, because that is what the command says it does.
+- Photo coordinates and marker coordinates stay in separate columns and are never merged.
+- A missing coordinate is never inferred from a nearby marker.
+- `exif.py` stays minimal rather than growing into a general EXIF parser.
+- BSD-3-Clause, and a private-first release.
+
+Two things worth saying plainly, given this tool produces evidence.
+
+Everything stated here about CalTopo's behavior was measured against the live API, not
+recalled from training data. Where something has not been measured, it says so: the
+Android and web upload paths, and the `Folder` and `Assignment` containers, are all
+called out as untested rather than quietly assumed.
+
+And the model got things wrong during development. An early conclusion that copying a map
+had corrupted its photo links was confidently wrong, and a person disproved it in one
+glance at a screenshot. The real cause was a parsing mistake in our own code. It cost
+nothing only because it had been labelled a hypothesis instead of written in.

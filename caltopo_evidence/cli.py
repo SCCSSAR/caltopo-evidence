@@ -79,7 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
     ex.add_argument("--metadata-only", action="store_true",
                     help="read the map and write the CSV, but download no image bytes")
     ex.add_argument("--limit", type=int, default=None,
-                    help="download only the first N photos — produces a PARTIAL bundle")
+                    help="download only the first N photos; produces a PARTIAL bundle")
     ex.add_argument("--all", action="store_true",
                     help="download every photo (this is the default; kept for clarity)")
     ex.add_argument("--resume", action="store_true",
@@ -147,10 +147,10 @@ def cmd_extract(args) -> int:
 def cmd_verify(args) -> int:
     res = verify_bundle(args.bundle_dir)
     if res["ok"]:
-        print(f"VERIFIED — {res['checked']} artifact(s) match the manifest.")
+        print(f"VERIFIED: {res['checked']} artifact(s) match the manifest.")
         print("Note: SHA-256 digests are tamper-evidence, not a signature.")
         return 0
-    print(f"FAILED — {len(res['problems'])} problem(s):")
+    print(f"FAILED: {len(res['problems'])} problem(s):")
     for p in res["problems"]:
         print(f"  - {p}")
     return 1
@@ -170,6 +170,6 @@ def main(argv=None) -> int:
         print(f"error: {e}", file=sys.stderr)
         return 2
     except KeyboardInterrupt:
-        print("\ninterrupted — re-run with --resume to continue", file=sys.stderr)
+        print("\ninterrupted; re-run with --resume to continue", file=sys.stderr)
         return 130
     return 2

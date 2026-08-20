@@ -344,7 +344,7 @@ class TestCoordinateSourceLabelsAreDistinct(unittest.TestCase):
     The four provenance labels must never collapse into one another.
 
     Mutation testing caught this: changing SOURCE_INHERITED to equal
-    SOURCE_CAMERA passed every behavioural test, because each test asserted
+    SOURCE_CAMERA passed every behavioral test, because each test asserted
     against the constant rather than against the DISTINCTION between constants.
     A label that silently equals another is worse than a missing label -- it
     reports a marker's position as a camera fix.
