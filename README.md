@@ -54,6 +54,12 @@ python3 -m caltopo_evidence extract ABC123 --metadata-only    # CSV only, no byt
 python3 -m caltopo_evidence extract ABC123 --limit 5          # a sample
 ```
 
+The map id must be the bare handle, not a URL. It names the output directory as well as
+the API path, so a pasted URL would otherwise create `bundles/caltopo.com/m/ABC123/` and
+look like it worked. Anything else is refused with a message naming the likely mistake.
+`sartopo.com` is publicly deprecated; this tool reads `caltopo.com` and does not follow
+redirects, so a sartopo URL gets told so rather than quietly redirected.
+
 Bundles are write-once: re-running into an existing bundle needs `--force` (replace) or
 `--resume` (continue an interrupted run). Note that `--force` only governs *replacing the
 directory*. It has never had anything to do with whether photos are downloaded.
@@ -187,11 +193,11 @@ signing scheme, and the behaviors that cost time to discover are written up in
 python3 -m unittest discover -s tests
 ```
 
-82 tests, no network and no credentials required. The suite has been mutation-tested:
-39 deliberate defects have been introduced into the production modules: wrong `parentId`
+97 tests, no network and no credentials required. The suite has been mutation-tested:
+45 deliberate defects have been introduced into the production modules: wrong `parentId`
 parsing, swapped lat/lng, milliseconds read as seconds, the extension fallback regressed,
 marker coordinates promoted into the photo's column, each integrity check disabled in
-turn, coordinate provenance over-claimed. All 39 were caught.
+turn, coordinate provenance over-claimed. All 45 were caught.
 
 Mutation testing is the standard here because a passing test proves nothing on its own;
 what matters is that the test **fails when the code breaks**. One check did leak on the

@@ -25,6 +25,7 @@ from pathlib import Path
 from . import TOOL_NAME, __version__
 from .client import CalTopoError, CalTopoReadOnlyClient, Credentials
 from .extract import BundleExists, extract
+from .model import InvalidMapId
 from .manifest import verify_bundle
 
 GCLOUD_SECRETS = {
@@ -163,7 +164,9 @@ def main(argv=None) -> int:
             return cmd_extract(args)
         if args.command == "verify":
             return cmd_verify(args)
-    except BundleExists as e:
+    except (BundleExists, InvalidMapId) as e:
+        # InvalidMapId is a ValueError, so without this it reaches the user as
+        # a traceback instead of the message it was written to give them.
         print(f"error: {e}", file=sys.stderr)
         return 2
     except CalTopoError as e:

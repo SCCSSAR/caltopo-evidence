@@ -84,6 +84,10 @@ def extract(client: CalTopoReadOnlyClient, map_id: str, out_root: Path, *,
             limit: Optional[int] = None, resume: bool = False, force: bool = False,
             operator: Optional[str] = None, quiet: bool = False,
             progress: Optional[Callable[[int, int], None]] = None) -> ExtractionResult:
+    # Before anything touches the filesystem or the network: the map id becomes
+    # both a directory name and an API path segment.
+    map_id = model.validate_map_id(map_id)
+
     started_at = _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     notes: list = []
 
