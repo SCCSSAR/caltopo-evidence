@@ -85,6 +85,27 @@ class Credentials:
             ) from exc
 
 
+def _validated_base_url(base_url: str) -> str:
+    """
+    Accept only an https:// origin.
+
+    `--base-url` is an operator-supplied string that reaches urllib. Without a
+    scheme check, `file:///etc/passwd` makes urlopen read a local path while the
+    tool still believes it is talking to CalTopo, and a plain http:// origin
+    would put a signed credential on the wire in cleartext. Neither is a remote
+    attack -- the operator types this -- but an evidence tool should not be
+    talkable into either by a typo or a copied command line.
+    """
+    cleaned = base_url.rstrip("/")
+    if not cleaned.lower().startswith("https://"):
+        raise CalTopoError(
+            f"--base-url must be an https:// origin, got {base_url!r}. "
+            "Requests carry a signed credential, so http:// and non-network "
+            "schemes such as file:// are refused."
+        )
+    return cleaned
+
+
 class CalTopoReadOnlyClient:
     """Signed, read-only access to the CalTopo Team API."""
 
@@ -92,7 +113,7 @@ class CalTopoReadOnlyClient:
                  timeout: float = 120.0):
         creds.validate()
         self._creds = creds
-        self.base_url = base_url.rstrip("/")
+        self.base_url = _validated_base_url(base_url)
         self.timeout = timeout
         self._ssl = ssl.create_default_context()
 

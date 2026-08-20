@@ -187,8 +187,8 @@ signing scheme, and the behaviours that cost time to discover are written up in
 python3 -m unittest discover -s tests
 ```
 
-63 tests, no network and no credentials required. The suite has been mutation-tested:
-23 deliberate defects were introduced into the production modules — wrong `parentId`
+74 tests, no network and no credentials required. The suite has been mutation-tested:
+32 deliberate defects have been introduced into the production modules — wrong `parentId`
 parsing, swapped lat/lng, milliseconds read as seconds, the extension fallback regressed,
 marker coordinates promoted into the photo's column, each integrity check disabled in
 turn, coordinate provenance over-claimed — and all 23 were caught.
