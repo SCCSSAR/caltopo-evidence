@@ -10,7 +10,7 @@ WHY THIS EXISTS
     The rule is written down in CONTRIBUTING.md. This makes it mechanical.
 
 WHAT IT KEYS ON
-    Precision, not value. 37.4 and 37.164325 are both plausible latitudes, but
+    Precision, not value. 37.4 and 37.123456 are both plausible latitudes, but
     only the second carries roughly 10 cm of resolution -- nobody invents that
     by hand, so a coordinate-shaped literal with real digits past the third
     decimal place is a reliable fingerprint of pasted-in production data.

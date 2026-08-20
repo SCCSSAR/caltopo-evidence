@@ -247,8 +247,8 @@ Two things worth saying plainly, given this tool produces evidence.
 
 Everything stated here about CalTopo's behavior was measured against the live API, not
 recalled from training data. Where something has not been measured, it says so: the
-Android and web upload paths, and the `Folder` and `Assignment` containers, are all
-called out as untested rather than quietly assumed.
+Android and web upload paths, and the `Folder` container, are called out as untested
+rather than quietly assumed.
 
 And the model got things wrong during development. An early conclusion that copying a map
 had corrupted its photo links was confidently wrong, and a person disproved it in one
